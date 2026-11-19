@@ -1,5 +1,3 @@
-// il faut faire un autre system d'animation. le current one est clanky
-//j'ai fait apparaitre le cafe et fait bouger un tit gateau ! plus qu'as faire le jeu lol
 
 #define SDL_MAIN_USE_CALLBACKS
 #include <SDL3/SDL.h>
