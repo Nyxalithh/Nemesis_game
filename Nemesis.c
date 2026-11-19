@@ -114,6 +114,13 @@ typedef struct
 
 }Interactiv_Object;
 
+typedef struct
+{
+    SDL_Texture *texture;
+    int which;
+    SDL_FRect rect;
+}Object_In_Hand;
+
 
 typedef struct
 {
@@ -122,14 +129,16 @@ typedef struct
     SDL_Texture *bg;
     SDL_Texture *tableau;
     SDL_Texture *table;
+    Button food_slot;
+    SDL_Texture *current_food_slot_texture;
+
     
     SDL_Texture *cake_oven;
     Interactiv_Object blueberry_cake;
     Interactiv_Object strawberry_cake;
     Interactiv_Object raspberry_cake;
 
-    SDL_Texture *texture_object_in_hand;
-    int object_in_hand;
+    Object_In_Hand object_in_hand;
 }Coffee;
 
 
@@ -1463,6 +1472,11 @@ void Menu_uid(App *app)
 
 }
 
+
+
+
+
+
 int button_check(App *app, SDL_Event *event)    //check sur quel button est la souris.
 {
     SDL_Log("button check !\n\t%d", app->current_button);
@@ -1484,6 +1498,21 @@ int button_check(App *app, SDL_Event *event)    //check sur quel button est la s
         {
             
             return 10;   //objet bluberrycake
+        } 
+        if (app->mouse.y > app->all_coffee.strawberry_cake.hitbox.ax      &&       app->mouse.y < app->all_coffee.strawberry_cake.hitbox.by     &&       app->mouse.x > app->all_coffee.strawberry_cake.hitbox.ax        &&      app->mouse.x < app->all_coffee.strawberry_cake.hitbox.bx)
+        {
+            
+            return 11;   //objet strawberrycake
+        }
+        if (app->mouse.y > app->all_coffee.raspberry_cake.hitbox.ax      &&       app->mouse.y < app->all_coffee.raspberry_cake.hitbox.by     &&       app->mouse.x > app->all_coffee.raspberry_cake.hitbox.ax        &&      app->mouse.x < app->all_coffee.raspberry_cake.hitbox.bx)
+        {
+            
+            return 12;   //objet raspberrycake
+        }
+        if (app->mouse.y > app->all_coffee.food_slot.hitbox.ax      &&       app->mouse.y < app->all_coffee.food_slot.hitbox.by     &&       app->mouse.x > app->all_coffee.food_slot.hitbox.ax        &&      app->mouse.x < app->all_coffee.food_slot.hitbox.bx)
+        {
+            
+            return 13;   //objet food slot
         }
         break;
     default:
@@ -1514,9 +1543,11 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 
 int coffee_init(App* app)
-{
+{ SDL_Log("[DEBUG] coffee init!\n\tcreation des texture!");
 
-    app->all_coffee.object_in_hand = 0;
+    app->all_coffee.current_food_slot_texture = NULL;
+
+    app->all_coffee.object_in_hand.which = 0;
 
     app->all_coffee.coffee_rect.h = 128*2;
     app->all_coffee.coffee_rect.w = 256*2;
@@ -1532,10 +1563,36 @@ int coffee_init(App* app)
     app->all_coffee.blueberry_cake.hitbox.bx = app->all_coffee.blueberry_cake.rect.x    +   app->all_coffee.blueberry_cake.rect.w;
     app->all_coffee.blueberry_cake.hitbox.by = app->all_coffee.blueberry_cake.rect.y    +   app->all_coffee.blueberry_cake.rect.h;
 
+    app->all_coffee.strawberry_cake.rect.h = 13*2;
+    app->all_coffee.strawberry_cake.rect.w = 24*2;
+    app->all_coffee.strawberry_cake.rect.x = 25*2; //*2 car il faut que se soit proportionnelle au bg
+    app->all_coffee.strawberry_cake.rect.y = 46*2;
+    app->all_coffee.strawberry_cake.hitbox.ax = app->all_coffee.strawberry_cake.rect.x;
+    app->all_coffee.strawberry_cake.hitbox.ay = app->all_coffee.strawberry_cake.rect.y;
+    app->all_coffee.strawberry_cake.hitbox.bx = app->all_coffee.strawberry_cake.rect.x    +   app->all_coffee.strawberry_cake.rect.w;
+    app->all_coffee.strawberry_cake.hitbox.by = app->all_coffee.strawberry_cake.rect.y    +   app->all_coffee.strawberry_cake.rect.h;
+
+    app->all_coffee.raspberry_cake.rect.h = 13*2;
+    app->all_coffee.raspberry_cake.rect.w = 24*2;
+    app->all_coffee.raspberry_cake.rect.x = 0*2; //*2 car il faut que se soit proportionnelle au bg
+    app->all_coffee.raspberry_cake.rect.y = 46*2;
+    app->all_coffee.raspberry_cake.hitbox.ax = app->all_coffee.raspberry_cake.rect.x;
+    app->all_coffee.raspberry_cake.hitbox.ay = app->all_coffee.raspberry_cake.rect.y;
+    app->all_coffee.raspberry_cake.hitbox.bx = app->all_coffee.raspberry_cake.rect.x    +   app->all_coffee.raspberry_cake.rect.w;
+    app->all_coffee.raspberry_cake.hitbox.by = app->all_coffee.raspberry_cake.rect.y    +   app->all_coffee.raspberry_cake.rect.h;
+
+    app->all_coffee.food_slot.rect.h = 29;
+    app->all_coffee.food_slot.rect.w = 64;  //pas *2 car j'ai petre un peu abuser sur la taille
+    app->all_coffee.food_slot.rect.x = 68*2; 
+    app->all_coffee.food_slot.rect.y = 80*2;    //*2 car il faut que se soit proportionnelle au bg
+    app->all_coffee.food_slot.hitbox.ax = app->all_coffee.food_slot.rect.x;
+    app->all_coffee.food_slot.hitbox.ay = app->all_coffee.food_slot.rect.y;
+    app->all_coffee.food_slot.hitbox.bx = app->all_coffee.food_slot.rect.x    +   app->all_coffee.food_slot.rect.w;
+    app->all_coffee.food_slot.hitbox.by = app->all_coffee.food_slot.rect.y    +   app->all_coffee.food_slot.rect.h;
 
 
 
-    SDL_Log("[DEBUG] coffee init!\n\tcreation des texture!");
+   
     app->all_coffee.bg = create_texture(app, "Asset/coffee_shop/coffee_bg.bmp");
     app->all_coffee.table = create_texture(app, "Asset/coffee_shop/coffee_table.bmp");
     app->all_coffee.cake_oven = create_texture(app, "Asset/coffee_shop/cakeOven.bmp");
@@ -1544,15 +1601,14 @@ int coffee_init(App* app)
     app->all_coffee.raspberry_cake.texture = create_texture(app, "Asset/coffee_shop/cake_framboise.bmp");
     app->all_coffee.strawberry_cake.texture = create_texture(app, "Asset/coffee_shop/cake_strawberry.bmp");
 
+    app->all_coffee.food_slot.texture[0] = create_texture(app, "Asset/coffee_shop/foodSlot.bmp");
+
     app->current_scene = 2; //on passe a scene 2 donc c'est coffee main qui va se faire appeler maintenant.
 }
 
 void coffe_hitbox_refresh(App* app)
 {
-    app->all_coffee.blueberry_cake.hitbox.ax = app->all_coffee.blueberry_cake.rect.x;
-    app->all_coffee.blueberry_cake.hitbox.ay = app->all_coffee.blueberry_cake.rect.y;
-    app->all_coffee.blueberry_cake.hitbox.bx = app->all_coffee.blueberry_cake.rect.x    +   app->all_coffee.blueberry_cake.rect.w;
-    app->all_coffee.blueberry_cake.hitbox.by = app->all_coffee.blueberry_cake.rect.y    +   app->all_coffee.blueberry_cake.rect.h;
+    
 }
 
 int coffee_main(App* app)
@@ -1583,11 +1639,21 @@ void coffee_render(App *app)
         SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
     
-    
+    if(!SDL_RenderTexture(app->renderer, app->all_coffee.food_slot.texture[0] , NULL, &app->all_coffee.food_slot.rect)){
+        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        app->running = false;}
 
-    if (app->all_coffee.object_in_hand != 0)
+    if (app->all_coffee.current_food_slot_texture != NULL)
     {
-        if(!SDL_RenderTexture(app->renderer, app->all_coffee.blueberry_cake.texture , NULL, &app->all_coffee.blueberry_cake.rect)){
+        if(!SDL_RenderTexture(app->renderer, app->all_coffee.current_food_slot_texture , NULL, &app->all_coffee.food_slot.rect)){
+            SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+            app->running = false;}
+    }
+   
+
+    if (app->all_coffee.object_in_hand.which != 0)
+    {
+        if(!SDL_RenderTexture(app->renderer, app->all_coffee.object_in_hand.texture , NULL, &app->all_coffee.object_in_hand.rect)){
         SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
     }
@@ -1602,11 +1668,33 @@ void coffee_render(App *app)
 
 void coffee_update(App *app)
 {
-    if (app->current_button_action == 10) //blueberrycake
+    switch (app->current_button_action)
     {
-        app->all_coffee.texture_object_in_hand = app->all_coffee.blueberry_cake.texture;
-        app->all_coffee.object_in_hand  = 10;
+    case 10:  //blueberrycake
+        app->all_coffee.object_in_hand.texture = app->all_coffee.blueberry_cake.texture;
+        app ->all_coffee.object_in_hand.rect = app->all_coffee.blueberry_cake.rect;
+        app->all_coffee.object_in_hand.which  = 10;
+        break;
+    case 11:  //strawberrycake
+        app->all_coffee.object_in_hand.texture = app->all_coffee.strawberry_cake.texture;
+        app ->all_coffee.object_in_hand.rect = app->all_coffee.strawberry_cake.rect;
+        app->all_coffee.object_in_hand.which  = 11;
+        break;
+    case 12:  //raspberrycake
+        app->all_coffee.object_in_hand.texture = app->all_coffee.raspberry_cake.texture;
+        app ->all_coffee.object_in_hand.rect = app->all_coffee.raspberry_cake.rect;
+        app->all_coffee.object_in_hand.which  = 12;
+        break; 
+
+    case 13:  //food slot
+        app->all_coffee.current_food_slot_texture = app->all_coffee.object_in_hand.texture;
+        app->all_coffee.object_in_hand.which  = 0;
+        
+        break; 
+    default:
+        break;
     }
-    app->all_coffee.blueberry_cake.rect.x = app->mouse.x    -   app->all_coffee.blueberry_cake.rect.w/2;
-    app->all_coffee.blueberry_cake.rect.y = app->mouse.y    -   app->all_coffee.blueberry_cake.rect.h/2;
+    
+    app->all_coffee.object_in_hand.rect.x = app->mouse.x    -   app->all_coffee.object_in_hand.rect.w/2;
+    app->all_coffee.object_in_hand.rect.y = app->mouse.y    -   app->all_coffee.object_in_hand.rect.h/2;
 }
