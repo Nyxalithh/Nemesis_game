@@ -116,6 +116,7 @@ typedef struct
 
 }Interactiv_Object;
 
+
 typedef struct
 {
     SDL_FRect coffee_rect;
@@ -128,6 +129,9 @@ typedef struct
     Interactiv_Object blueberry_cake;
     Interactiv_Object strawberry_cake;
     Interactiv_Object raspberry_cake;
+
+    SDL_Texture *texture_object_in_hand;
+    int object_in_hand;
 }Coffee;
 
 
@@ -199,6 +203,7 @@ typedef struct
 
     int current_scene;  //0 = menu; 1 = game; 2 = cafee;
     int current_button;
+    int current_button_action;
     int current_interactiv; //1-19 == ville || 20-29 == cafee
 
     Objet allObjets[100];
@@ -268,6 +273,7 @@ SDL_AppResult SDL_AppInit(void **appstate, int argc, char *argv[])
     app->paused = false;
     app->current_scene = 0;
     app->current_interactiv = 0;
+    app->current_button_action = 0;
     
 
     app->window_rect.x = 0;
@@ -557,12 +563,15 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
         break;
     
     case SDL_EVENT_MOUSE_BUTTON_DOWN:
-        switch (app->current_button)
+        app->current_button_action = app->current_button;
+        switch (app->current_button_action)
         {
         case 1:
             app->current_scene = 1;
             break;
         
+        case 10:
+            
         default:
             break;
         }
@@ -594,7 +603,6 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
 SDL_AppResult SDL_AppIterate(void *appstate)
 {
     App *app = appstate;
-    
     //gestion du temp.
     Uint64 frameStart = SDL_GetTicks();
     float deltaTime = gestionTemp(app);
@@ -716,7 +724,7 @@ void Update_game (App *app, float deltaTime)
 {
     hitboxRefrech(app);
     app->current_interactiv = checkCollisionInteractiv(app);
-    SDL_Log("inter = %d", app->current_interactiv);
+    
 
     const bool *keys = SDL_GetKeyboardState(NULL);
     static int n = 0;
@@ -1459,6 +1467,33 @@ void Menu_uid(App *app)
 
 int button_check(App *app, SDL_Event *event)    //check sur quel button est la souris.
 {
+    SDL_Log("button check !\n\t%d", app->current_button);
+    
+    switch (app->current_scene)
+    {
+    case 0: //menu
+        if (app->mouse.y > app->menu.play.hitbox.ay        &&       app->mouse.y < app->menu.play.hitbox.by     &&       app->mouse.x > app->menu.play.hitbox.ax        &&      app->mouse.x < app->menu.play.hitbox.bx)
+        {
+            return 1;   //objet 1
+        }
+        break;
+    
+    case 1: //game
+        break;
+    case 2: //coffee
+        
+        if (app->mouse.y > app->all_coffee.blueberry_cake.hitbox.ax      &&       app->mouse.y < app->all_coffee.blueberry_cake.hitbox.by     &&       app->mouse.x > app->all_coffee.blueberry_cake.hitbox.ax        &&      app->mouse.x < app->all_coffee.blueberry_cake.hitbox.bx)
+        {
+            
+            return 10;   //objet bluberrycake
+        }
+        break;
+    default:
+        break;
+    }
+    
+
+
     if (app->mouse.y > app->menu.play.hitbox.ay        &&       app->mouse.y < app->menu.play.hitbox.by     &&       app->mouse.x > app->menu.play.hitbox.ax        &&      app->mouse.x < app->menu.play.hitbox.bx)
     {
         return 1;   //objet 1
@@ -1482,6 +1517,9 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 
 int coffee_init(App* app)
 {
+
+    app->all_coffee.object_in_hand = 0;
+
     app->all_coffee.coffee_rect.h = 128*2;
     app->all_coffee.coffee_rect.w = 256*2;
     app->all_coffee.coffee_rect.x = 0;
@@ -1489,8 +1527,8 @@ int coffee_init(App* app)
 
     app->all_coffee.blueberry_cake.rect.h = 13*2;
     app->all_coffee.blueberry_cake.rect.w = 24*2;
-    app->all_coffee.blueberry_cake.rect.x = 0;
-    app->all_coffee.blueberry_cake.rect.y = 0;
+    app->all_coffee.blueberry_cake.rect.x = 50*2; //*2 car il faut que se soit proportionnelle au bg
+    app->all_coffee.blueberry_cake.rect.y = 46*2;
     app->all_coffee.blueberry_cake.hitbox.ax = app->all_coffee.blueberry_cake.rect.x;
     app->all_coffee.blueberry_cake.hitbox.ay = app->all_coffee.blueberry_cake.rect.y;
     app->all_coffee.blueberry_cake.hitbox.bx = app->all_coffee.blueberry_cake.rect.x    +   app->all_coffee.blueberry_cake.rect.w;
@@ -1509,6 +1547,14 @@ int coffee_init(App* app)
     app->all_coffee.strawberry_cake.texture = create_texture(app, "Asset/coffee_shop/cake_strawberry.bmp");
 
     app->current_scene = 2; //on passe a scene 2 donc c'est coffee main qui va se faire appeler maintenant.
+}
+
+void coffe_hitbox_refresh(App* app)
+{
+    app->all_coffee.blueberry_cake.hitbox.ax = app->all_coffee.blueberry_cake.rect.x;
+    app->all_coffee.blueberry_cake.hitbox.ay = app->all_coffee.blueberry_cake.rect.y;
+    app->all_coffee.blueberry_cake.hitbox.bx = app->all_coffee.blueberry_cake.rect.x    +   app->all_coffee.blueberry_cake.rect.w;
+    app->all_coffee.blueberry_cake.hitbox.by = app->all_coffee.blueberry_cake.rect.y    +   app->all_coffee.blueberry_cake.rect.h;
 }
 
 int coffee_main(App* app)
@@ -1539,10 +1585,15 @@ void coffee_render(App *app)
         SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
     
+    
 
-    if(!SDL_RenderTexture(app->renderer, app->all_coffee.blueberry_cake.texture , NULL, &app->all_coffee.blueberry_cake.rect)){
+    if (app->all_coffee.object_in_hand != 0)
+    {
+        if(!SDL_RenderTexture(app->renderer, app->all_coffee.blueberry_cake.texture , NULL, &app->all_coffee.blueberry_cake.rect)){
         SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
+    }
+    
     
     
     
@@ -1553,6 +1604,11 @@ void coffee_render(App *app)
 
 void coffee_update(App *app)
 {
+    if (app->current_button_action == 10) //blueberrycake
+    {
+        app->all_coffee.texture_object_in_hand = app->all_coffee.blueberry_cake.texture;
+        app->all_coffee.object_in_hand  = 10;
+    }
     app->all_coffee.blueberry_cake.rect.x = app->mouse.x    -   app->all_coffee.blueberry_cake.rect.w/2;
     app->all_coffee.blueberry_cake.rect.y = app->mouse.y    -   app->all_coffee.blueberry_cake.rect.h/2;
 }
