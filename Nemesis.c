@@ -121,9 +121,17 @@ typedef struct
     SDL_FRect rect;
 }Object_In_Hand;
 
+typedef struct
+{
+    int money;
+    int sanity;
+    int energy;
+}Player;
+
 
 typedef struct
 {
+    float minuteur;
     SDL_FRect coffee_rect;
 
     SDL_Texture *bg;
@@ -132,7 +140,8 @@ typedef struct
     Button food_slot;
     SDL_Texture *current_food_slot_texture;
 
-    
+    char *orders[10];
+
     SDL_Texture *cake_oven;
     Interactiv_Object blueberry_cake;
     Interactiv_Object strawberry_cake;
@@ -216,6 +225,7 @@ typedef struct
     Objet allObjets[100];
     int nbrObjet;
 
+    Player player;
 
     
 
@@ -253,9 +263,12 @@ int button_check(App *app, SDL_Event *event);
 
 
 int coffee_init(App* app);
-int coffee_main(App* app);
+int coffee_main(App* app, float deltaTime);
 void coffee_render(App *app);
 void coffee_update(App *app);
+void coffeeDestroy(App *app);
+
+void render_basicUID(App *app);
 
 
 
@@ -577,8 +590,7 @@ SDL_AppResult SDL_AppEvent(void *appstate, SDL_Event *event)
             app->current_scene = 1;
             break;
         
-        case 10:
-            
+        
         default:
             break;
         }
@@ -630,7 +642,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
     } else if (!app->paused  && app->current_scene == 2)           //mode coffee shop !!
     {
-        coffee_main(app);
+        coffee_main(app, deltaTime);
     }
     
     
@@ -850,7 +862,7 @@ void Render_game(App *app, float deltaTime)
     background_animation(app);
     camera_animation(app);
    
-
+    
     SDL_SetRenderDrawColor(app->renderer, 0x5, 0x0, 0x10, 0xFF);
     SDL_RenderClear(app->renderer);
 
@@ -914,7 +926,7 @@ void Render_game(App *app, float deltaTime)
         }
     }
     
-
+    render_basicUID(app);
 
     /*
     if(!SDL_RenderTexture(app->renderer, app->background.forground, NULL, &app->background.rect_forground)){
@@ -931,7 +943,7 @@ float gestionTemp(App *app)
 {
     
 
-        Uint64 currentTime= SDL_GetTicks();
+        Uint64 currentTime = SDL_GetTicks();
         
         float tempEcouler = currentTime - app->lastTime;
         float deltaTime = tempEcouler / 1000.0f;
@@ -1539,11 +1551,26 @@ void SDL_AppQuit(void *appstate, SDL_AppResult result)
 }
 
 
-
+void render_basicUID(App *app)
+{
+    SDL_SetRenderDrawColor(app->renderer, 72, 221, 215, 0xFF);
+    SDL_RenderDebugTextFormat(app->renderer, 1.0f*2, 0, "money: %d", app->player.money);
+}
 
 
 int coffee_init(App* app)
 { SDL_Log("[DEBUG] coffee init!\n\tcreation des texture!");
+
+    app->all_coffee.minuteur = 10;
+    
+
+    app->player.energy = 10;    //sur 10
+    app->player.money = 0;
+    app->player.sanity = 70; //70 sur 100
+
+    app->all_coffee.orders[0] = "RASPBERRY CAKE";
+    app->all_coffee.orders[1] = "BLUEBERRY CAKE";
+    app->all_coffee.orders[2] = "STRAWBERRY CAKE";
 
     app->all_coffee.current_food_slot_texture = NULL;
 
@@ -1611,10 +1638,20 @@ void coffe_hitbox_refresh(App* app)
     
 }
 
-int coffee_main(App* app)
+int coffee_main(App* app, float deltaTime)
 {
     coffee_render(app);
     coffee_update(app);
+
+    app->all_coffee.minuteur -= deltaTime;
+    if (app->all_coffee.minuteur <= 1)
+    {
+        coffeeDestroy(app);
+        app->current_scene = 1;
+    }
+
+    
+
 }
 
 
@@ -1642,6 +1679,15 @@ void coffee_render(App *app)
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.food_slot.texture[0] , NULL, &app->all_coffee.food_slot.rect)){
         SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
+
+        SDL_SetRenderDrawColor(app->renderer, 72, 221, 215, 0xFF);
+        SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 7.0f*2, "%s", app->all_coffee.orders[0]);
+        SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 19.0f*2, "%s", app->all_coffee.orders[1]);
+        SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 31.0f*2, "%s", app->all_coffee.orders[2]);
+
+        SDL_RenderDebugTextFormat(app->renderer, 180.0f*2, 0.0f*2, "%.0f", app->all_coffee.minuteur);
+        render_basicUID(app);
+
 
     if (app->all_coffee.current_food_slot_texture != NULL)
     {
@@ -1697,4 +1743,18 @@ void coffee_update(App *app)
     
     app->all_coffee.object_in_hand.rect.x = app->mouse.x    -   app->all_coffee.object_in_hand.rect.w/2;
     app->all_coffee.object_in_hand.rect.y = app->mouse.y    -   app->all_coffee.object_in_hand.rect.h/2;
+}
+
+void coffeeDestroy(App *app)
+{
+    SDL_DestroyTexture(app->all_coffee.bg);
+    SDL_DestroyTexture(app->all_coffee.table);
+    SDL_DestroyTexture(app->all_coffee.cake_oven);
+    SDL_DestroyTexture(app->all_coffee.tableau);
+    SDL_DestroyTexture(app->all_coffee.blueberry_cake.texture);
+    SDL_DestroyTexture(app->all_coffee.raspberry_cake.texture);
+    SDL_DestroyTexture(app->all_coffee.strawberry_cake.texture);
+    SDL_DestroyTexture(app->all_coffee.food_slot.texture[0]);
+
+    SDL_Log("[DEBUG] destroy coffee texture");
 }
