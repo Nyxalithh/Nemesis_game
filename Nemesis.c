@@ -131,6 +131,9 @@ typedef struct
 
 typedef struct
 {
+    SDL_Texture *end_coffee_UID;
+    SDL_FRect rect_end_coffee_UID;
+
     float minuteur;
     SDL_FRect coffee_rect;
 
@@ -267,8 +270,9 @@ int coffee_main(App* app, float deltaTime);
 void coffee_render(App *app);
 void coffee_update(App *app);
 void coffeeDestroy(App *app);
+void coffeeKeyHandle(App *app, SDL_Event *event);
 
-void render_basicUID(App *app);
+void render_basicUID(App *app); //render les level, money etc
 
 
 
@@ -643,6 +647,7 @@ SDL_AppResult SDL_AppIterate(void *appstate)
     } else if (!app->paused  && app->current_scene == 2)           //mode coffee shop !!
     {
         coffee_main(app, deltaTime);
+        
     }
     
     
@@ -668,10 +673,22 @@ SDL_AppResult SDL_AppIterate(void *appstate)
 
 void keyHandle(SDL_Event *event, App *app)
 {
+
+    if (app->current_scene == 2)
+    {
+        coffeeKeyHandle(app, event);
+    }
     switch (event->key.scancode)
     {
+        case SDL_SCANCODE_P:
+            app->paused = !app->paused;
+            break;
         case SDL_SCANCODE_ESCAPE:
             app->running = false;
+
+
+        //main city:    
+        
         
         case SDL_SCANCODE_F11:
             app->fullscreen = !app->fullscreen;
@@ -707,9 +724,7 @@ void keyHandle(SDL_Event *event, App *app)
             app->camera.pos.x--;
             break;
 
-        case SDL_SCANCODE_P:
-            app->paused = !app->paused;
-            break;
+        
         case SDL_SCANCODE_E:
             if (app->current_interactiv == 1)   //si on est vers le cafee
             {
@@ -926,6 +941,8 @@ void Render_game(App *app, float deltaTime)
         }
     }
     
+    
+     
     render_basicUID(app);
 
     /*
@@ -1491,7 +1508,7 @@ void Menu_uid(App *app)
 
 int button_check(App *app, SDL_Event *event)    //check sur quel button est la souris.
 {
-    SDL_Log("button check !\n\t%d", app->current_button);
+    
     
     switch (app->current_scene)
     {
@@ -1558,11 +1575,16 @@ void render_basicUID(App *app)
 }
 
 
+
 int coffee_init(App* app)
 { SDL_Log("[DEBUG] coffee init!\n\tcreation des texture!");
 
-    app->all_coffee.minuteur = 10;
+    app->all_coffee.minuteur = 1;
     
+    app->all_coffee.rect_end_coffee_UID.h = 512/2.5f;
+    app->all_coffee.rect_end_coffee_UID.w = 376/2.5f;
+    app->all_coffee.rect_end_coffee_UID.x = app->window_rect.w/2    -   app->all_coffee.rect_end_coffee_UID.w/2;
+    app->all_coffee.rect_end_coffee_UID.y = app->window_rect.h/2    -   app->all_coffee.rect_end_coffee_UID.h/2     -   70;
 
     app->player.energy = 10;    //sur 10
     app->player.money = 0;
@@ -1619,6 +1641,9 @@ int coffee_init(App* app)
 
 
 
+
+
+    app->all_coffee.end_coffee_UID = create_texture(app, "Asset/UID/coffeeFinished.bmp");
    
     app->all_coffee.bg = create_texture(app, "Asset/coffee_shop/coffee_bg.bmp");
     app->all_coffee.table = create_texture(app, "Asset/coffee_shop/coffee_table.bmp");
@@ -1640,18 +1665,11 @@ void coffe_hitbox_refresh(App* app)
 
 int coffee_main(App* app, float deltaTime)
 {
-    coffee_render(app);
-    coffee_update(app);
+        coffee_render(app);
+        coffee_update(app);
 
-    app->all_coffee.minuteur -= deltaTime;
-    if (app->all_coffee.minuteur <= 1)
-    {
-        coffeeDestroy(app);
-        app->current_scene = 1;
-    }
-
+        app->all_coffee.minuteur -= deltaTime;
     
-
 }
 
 
@@ -1661,53 +1679,61 @@ void coffee_render(App *app)
     SDL_RenderClear(app->renderer);
 
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.bg , NULL, &app->all_coffee.coffee_rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
 
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.tableau , NULL, &app->all_coffee.coffee_rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
 
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.table , NULL, &app->all_coffee.coffee_rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
 
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.cake_oven , NULL, &app->all_coffee.coffee_rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
     
     if(!SDL_RenderTexture(app->renderer, app->all_coffee.food_slot.texture[0] , NULL, &app->all_coffee.food_slot.rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
 
         SDL_SetRenderDrawColor(app->renderer, 72, 221, 215, 0xFF);
         SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 7.0f*2, "%s", app->all_coffee.orders[0]);
-        SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 19.0f*2, "%s", app->all_coffee.orders[1]);
+        SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 19.0f*2, "%s", app->all_coffee.orders[1]);       //tafel writings
         SDL_RenderDebugTextFormat(app->renderer, 134.0f*2, 31.0f*2, "%s", app->all_coffee.orders[2]);
 
-        SDL_RenderDebugTextFormat(app->renderer, 180.0f*2, 0.0f*2, "%.0f", app->all_coffee.minuteur);
+        SDL_RenderDebugTextFormat(app->renderer, 2.0f*2, 115.0f*2, "%.0f", app->all_coffee.minuteur);       //timer
         render_basicUID(app);
 
 
     if (app->all_coffee.current_food_slot_texture != NULL)
     {
         if(!SDL_RenderTexture(app->renderer, app->all_coffee.current_food_slot_texture , NULL, &app->all_coffee.food_slot.rect)){
-            SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+            SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
             app->running = false;}
     }
-   
+    
+    
+
 
     if (app->all_coffee.object_in_hand.which != 0)
     {
         if(!SDL_RenderTexture(app->renderer, app->all_coffee.object_in_hand.texture , NULL, &app->all_coffee.object_in_hand.rect)){
-        SDL_Log("in Render(), SDL_RenderTexture: %s", SDL_GetError);
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
         app->running = false;}
     }
+
     
-    
-    
-    
-    
+
+    if (app->all_coffee.minuteur <= 0)
+    {
+       
+        if(!SDL_RenderTexture(app->renderer, app->all_coffee.end_coffee_UID , NULL, &app->all_coffee.rect_end_coffee_UID)){
+        SDL_Log("in coffee_Render(), SDL_RenderTexture: %s", SDL_GetError);
+        app->running = false;}     //show end coffee UID
+    }
+   
     
     SDL_RenderPresent(app->renderer);
 }
@@ -1757,4 +1783,18 @@ void coffeeDestroy(App *app)
     SDL_DestroyTexture(app->all_coffee.food_slot.texture[0]);
 
     SDL_Log("[DEBUG] destroy coffee texture");
+}
+
+void coffeeKeyHandle(App *app, SDL_Event *event)
+{
+    switch (event->key.scancode)
+    {
+
+    case SDL_SCANCODE_RETURN:
+        SDL_Log("sending order !");
+        break;
+    
+    default:
+        break;
+    }
 }
